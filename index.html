@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Shryftoriz Checker</title>
+    <script src="CSInterface.js"></script>
+    <style>
+        :root { --bg: #0f0f0f; --panel: #1a1a1a; --red: #ff2a2a; --text: #ffffff; --gray: #888888; --white: #ffffff; --black: #1a1a1a; --orange: #ff9800; }
+        
+        *, *::before, *::after { box-sizing: border-box; }
+        *:focus { outline: none !important; }
+        
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; }
+        
+        /* --- SCROLLBAR LOGIC --- */
+        ::-webkit-scrollbar { width: 14px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        
+        ::-webkit-scrollbar-thumb { 
+            background-color: rgba(255, 255, 255, 0); 
+            border: 6px solid transparent; 
+            border-radius: 10px; 
+            background-clip: padding-box; 
+        }
+        
+        .content.is-scrolling::-webkit-scrollbar-thumb { 
+            background-color: rgba(255, 255, 255, 0.05); 
+        }
+        
+        .content.is-hovering-scroll::-webkit-scrollbar-thumb { 
+            background-color: rgba(255, 255, 255, 0.1); 
+            border-width: 5px; 
+        }
+        
+        ::-webkit-scrollbar-corner, ::-webkit-resizer { 
+            display: none !important; 
+            width: 0 !important; 
+            height: 0 !important; 
+            background: transparent !important; 
+        }
+        /* ----------------------- */
+
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background-color: var(--bg); border-bottom: 1px solid #333; flex-shrink: 0; z-index: 100; }
+        .logo { height: 24px; cursor: pointer; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; width: 100%; }
+        .title-small { font-size: 10px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; text-align: right; width: 100%; }
+        .lang-toggle { font-size: 11px; font-weight: bold; background: #222; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; }
+        .lang-toggle span { transition: 0.2s; }
+        .lang-toggle .active { color: var(--text); }
+        .lang-toggle .inactive { color: #555; cursor: pointer; }
+        .lang-toggle .inactive:hover { color: #888; }
+        .lang-sep { color: #444; margin: 0 4px; }
+
+        .content { padding: 15px 1px 15px 15px; display: block; flex-grow: 1; overflow-y: scroll; overflow-x: hidden; }
+
+        .accordion-header { background: var(--panel); padding: 12px 14px; cursor: pointer; border-radius: 12px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .accordion-header:hover { background: #252525; }
+        .accordion-content { display: block; padding: 15px 0px 5px 0px; }
+        
+        .chevron { width: 18px; height: 18px; fill: var(--gray); transition: transform 0.3s; transform-origin: center center; transform: rotate(0deg); }
+        .chevron.expanded { transform: rotate(90deg); }
+        
+        /* Toggles */
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 13px; cursor: pointer; }
+        .toggle-row > span:first-child { padding-left: 3px; } 
+        .toggle-row.disabled { opacity: 0.4; pointer-events: none; }
+        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--panel); transition: .3s; border-radius: 20px; border: none; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: #444; transition: .3s; border-radius: 50%; }
+        
+        input:checked + .slider { background-color: var(--white); }
+        input:checked + .slider:before { background-color: var(--black); transform: translateX(16px); }
+        input:checked + .slider.red-toggle { background-color: var(--red); }
+        input:checked + .slider.red-toggle:before { background-color: var(--white); transform: translateX(16px); }
+
+        .toggle-row.disabled .slider { background-color: transparent; border: 1px solid #333; }
+        .toggle-row.disabled .slider:before { background-color: rgba(255, 255, 255, 0.15); left: 1px; bottom: 1px; }
+
+        /* Color Picker */
+        .color-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; cursor: pointer; padding: 4px 0; }
+        .color-row-left { display: flex; align-items: center; gap: 10px; }
+        .color-thumb { width: 24px; height: 24px; border-radius: 8px; border: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+        .color-picker-panel { display: none; background: var(--panel); padding: 15px 10px; margin-top: 5px; margin-bottom: 15px; border-radius: 12px; }
+        .slider-container { margin-bottom: 12px; }
+        .slider-container label { font-size: 11px; display: block; margin-bottom: 5px; color: var(--gray); }
+        input[type=range] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 8px; outline: none; padding: 0; margin: 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: none; cursor: pointer; }
+        
+        /* HEX Input (HUG, Baseline aligned, 10px visual padding) */
+        .hex-input { display: flex; align-items: baseline; gap: 8px; margin-top: 15px; font-size: 12px; }
+        .hex-input input { background: #111; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 8px; width: 6ch; box-sizing: content-box; text-align: center; font-family: monospace; line-height: 1; margin: 0; }
+
+        /* Buttons Row */
+        .action-row { display: flex; gap: 8px; margin-top: 15px; margin-bottom: 15px; }
+        
+        button.main-btn { background-color: var(--white); color: var(--black); border: none; padding: 0 12px; cursor: pointer; border-radius: 12px; font-size: 12px; font-weight: bold; flex-grow: 1; transition: 0.2s; display: flex; justify-content: center; align-items: center; min-height: 42px; }
+        button.main-btn:hover { background-color: #e0e0e0; }
+        button.main-btn:disabled { background-color: #444; color: #888; cursor: not-allowed; }
+        
+        button.main-btn.btn-analyzing { background-color: rgba(255, 152, 0, 0.15) !important; color: var(--orange) !important; }
+        
+        .btn-mark { height: 14px; margin-left: 12px; display: none; }
+        
+        button.icon-btn { background-color: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; width: 42px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; min-height: 42px; }
+        button.icon-btn:hover { background-color: rgba(255,255,255,0.1); }
+        button.icon-btn svg { fill: var(--text); width: 18px; height: 18px; }
+
+        /* Report Area */
+        .report-container { display: flex; flex-direction: column; background: var(--panel); border-radius: 12px; overflow: hidden; margin-bottom: 15px; }
+        
+        .report-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #333; display: none; }
+        #status { font-size: 13px; font-weight: normal; color: var(--red); }
+        
+        .copy-btn { background: transparent; border: none; padding: 0; cursor: pointer; display: flex; justify-content: center; align-items: center; opacity: 0.15; transition: 0.2s; }
+        .copy-btn:hover { opacity: 0.6; }
+        .copy-btn svg { fill: #fff; width: 16px; height: 16px; }
+
+        #report { font-size: 12px; color: #ccc; padding: 15px 12px; line-height: 1.5; display: none; background: var(--panel); }
+        
+        .success { color: #4caf50 !important; }
+        .error { color: var(--red) !important; }
+        .warning { color: var(--orange) !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="shryftorizlogo.svg" class="logo" id="logoLink" alt="Shryftoriz">
+        <div class="header-right">
+            <span class="title-small">Shryftoriz Checker</span>
+            <div class="lang-toggle">
+                <span id="lang-uk" class="active">УК</span><span class="lang-sep">|</span><span id="lang-en" class="inactive">EN</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="content" id="mainContent">
+        <div class="accordion-header" id="accHeader">
+            <span data-i18n="settings">Налаштування дій</span> 
+            <svg class="chevron expanded" id="accArrow" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+        </div>
+        <div class="accordion-content" id="accContent">
+            <label class="toggle-row" id="row-strike">
+                <span data-i18n="strike">Закреслити</span>
+                <span class="switch"><input type="checkbox" id="opt-strike"><span class="slider"></span></span>
+            </label>
+            <label class="toggle-row" id="row-select">
+                <span data-i18n="select">Виділити</span>
+                <span class="switch"><input type="checkbox" id="opt-select"><span class="slider"></span></span>
+            </label>
+            <label class="toggle-row" id="row-recolor">
+                <span data-i18n="recolor">Розфарбувати</span>
+                <span class="switch"><input type="checkbox" id="opt-recolor"><span class="slider"></span></span>
+            </label>
+            
+            <div id="color-section" style="display: none;">
+                <div class="color-row" id="togglePickerRow">
+                    <div class="color-row-left">
+                        <div class="color-thumb" id="colorThumb" style="background-color: #ff0000;"></div>
+                        <span style="font-size: 13px; color: var(--gray);" data-i18n="changeColor">Змінити колір</span>
+                    </div>
+                    <svg class="chevron" id="colorArrow" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                </div>
+                <div class="color-picker-panel" id="colorPickerPanel">
+                    <div class="slider-container">
+                        <label data-i18n="hue">Hue (Відтінок)</label>
+                        <input type="range" id="h-slider" min="0" max="360" value="0" style="background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);">
+                    </div>
+                    <div class="slider-container">
+                        <label data-i18n="sat">Saturation (Насиченість)</label>
+                        <input type="range" id="s-slider" min="0" max="100" value="100">
+                    </div>
+                    <div class="slider-container">
+                        <label data-i18n="bri">Brightness (Яскравість)</label>
+                        <input type="range" id="b-slider" min="0" max="100" value="100">
+                    </div>
+                    <div class="hex-input">
+                        HEX: <input type="text" id="hex-input" value="FF0000" maxlength="6">
+                    </div>
+                </div>
+            </div>
+
+            <label class="toggle-row" style="border-top: 1px solid #333; padding-top: 14px; margin-top: 5px;">
+                <span style="color: var(--red);" data-i18n="del">Видалити</span>
+                <span class="switch"><input type="checkbox" id="opt-delete"><span class="slider red-toggle"></span></span>
+            </label>
+        </div>
+
+        <div class="action-row">
+            <button class="main-btn" id="checkBtn" disabled>
+                <span id="btnText" data-i18n="btnLoading">Завантаження бази...</span>
+                <img src="shryftorizmark.svg" class="btn-mark" id="btnMark" alt="mark">
+            </button>
+            <button class="icon-btn" id="refreshBtn" title="Оновити базу з сервера">
+                <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            </button>
+        </div>
+
+        <div class="report-container" id="reportContainer" style="display: none;">
+            <div class="report-header" id="reportHeader">
+                <div id="status"></div>
+                <button class="copy-btn" id="copyBtn" title="Копіювати список">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                </button>
+            </div>
+            <div id="report"></div>
+        </div>
+    </div>
+
+    <script>
+        var csInterface = new CSInterface();
+        
+        document.getElementById('logoLink').onclick = function() {
+            csInterface.openURLInDefaultBrowser("https://shryftoriz.online/fonts");
+        };
+
+        var contentEl = document.getElementById('mainContent');
+        var scrollTimer;
+
+        contentEl.addEventListener('scroll', function() {
+            contentEl.classList.add('is-scrolling');
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(function() {
+                contentEl.classList.remove('is-scrolling');
+            }, 800);
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (e.clientX >= window.innerWidth - 14) {
+                contentEl.classList.add('is-hovering-scroll');
+            } else {
+                contentEl.classList.remove('is-hovering-scroll');
+            }
+        });
+
+        var cachedFonts = [];
+        var lastCheckStatus = null; 
+        var lastCheckData = null;   
+
+        var dict = {
+            uk: {
+                settings: "Налаштування дій", strike: "Закреслити", select: "Виділити", recolor: "Розфарбувати",
+                changeColor: "Змінити колір", hue: "Hue (Відтінок)", sat: "Saturation (Насиченість)", bri: "Brightness (Яскравість)",
+                del: "Видалити", btnLoading: "Завантаження бази...", btnCheck: "Перевірити документ", btnUpdating: "Оновлення бази...",
+                errParse: "Помилка парсингу бази.", errServer: "Помилка сервера.", errNet: "Помилка мережі.",
+                errTitle: "Помилка", analyzing: "Аналіз документа...", done: "Перевірку завершено!",
+                clean: "Російських шрифтів не знайдено.", foundTitle: "Знайдено ворожих шрифтів: ",
+                source: "Джерело: Живий API Shryftoriz\nВсього в базі: ", fontsStr: " шрифтів\n",
+                resDoc: "Перевірено, ", actDel: "видалено", actStrike: "закреслено",
+                actSel: "виділено", actRecolor: "розфарбовано", actNone: "без дій",
+                WARN_NODOC: "Немає відкритих документів.", WARN_NOTEXT: "У документі немає тексту.",
+                ERR_EMPTYDB: "База шрифтів порожня.", ERR_FORMAT: "Невірний формат даних."
+            },
+            en: {
+                settings: "Action Settings", strike: "Strikethrough", select: "Select", recolor: "Recolor",
+                changeColor: "Change Color", hue: "Hue", sat: "Saturation", bri: "Brightness",
+                del: "Delete", btnLoading: "Loading database...", btnCheck: "Check Document", btnUpdating: "Updating database...",
+                errParse: "Database parsing error.", errServer: "Server error.", errNet: "Network error.",
+                errTitle: "Error", analyzing: "Analyzing document...", done: "Check Complete!",
+                clean: "No Russian fonts found.", foundTitle: "Hostile fonts found: ",
+                source: "Source: Live Shryftoriz API\nTotal in database: ", fontsStr: " fonts\n",
+                resDoc: "Checked, ", actDel: "deleted", actStrike: "strikethrough applied",
+                actSel: "selected", actRecolor: "recolored", actNone: "no actions",
+                WARN_NODOC: "No open documents.", WARN_NOTEXT: "No text in document.",
+                ERR_EMPTYDB: "Font database is empty.", ERR_FORMAT: "Invalid data format."
+            }
+        };
+
+        var state = { lang: 'uk', accOpen: true, strike: true, select: false, recolor: false, delete: false, prevStrike: true, prevSelect: false, prevRecolor: false, h: 0, s: 100, b: 100, hex: "FF0000", pickerOpen: false };
+        var saved = localStorage.getItem('shryftoriz_state');
+        if (saved) state = Object.assign(state, JSON.parse(saved));
+        function saveState() { localStorage.setItem('shryftoriz_state', JSON.stringify(state)); }
+
+        var langUk = document.getElementById('lang-uk'), langEn = document.getElementById('lang-en');
+        var btnText = document.getElementById('btnText'), btnMark = document.getElementById('btnMark');
+        
+        function applyLanguage() {
+            langUk.className = state.lang === 'uk' ? 'active' : 'inactive';
+            langEn.className = state.lang === 'en' ? 'active' : 'inactive';
+            var els = document.querySelectorAll('[data-i18n]');
+            for (var i = 0; i < els.length; i++) { els[i].innerText = dict[state.lang][els[i].getAttribute('data-i18n')]; }
+            if (cachedFonts.length > 0 && !checkBtn.classList.contains('btn-analyzing')) btnText.innerText = dict[state.lang].btnCheck;
+            if (lastCheckStatus) renderReport();
+        }
+        langUk.onclick = function() { state.lang = 'uk'; applyLanguage(); saveState(); };
+        langEn.onclick = function() { state.lang = 'en'; applyLanguage(); saveState(); };
+
+        var accHeader = document.getElementById('accHeader'), accContent = document.getElementById('accContent'), accArrow = document.getElementById('accArrow');
+        var optStrike = document.getElementById('opt-strike'), optSelect = document.getElementById('opt-select'), optRecolor = document.getElementById('opt-recolor'), optDelete = document.getElementById('opt-delete');
+        var rowStrike = document.getElementById('row-strike'), rowSelect = document.getElementById('row-select'), rowRecolor = document.getElementById('row-recolor');
+        var colorSection = document.getElementById('color-section'), colorThumb = document.getElementById('colorThumb'), togglePickerRow = document.getElementById('togglePickerRow'), colorPickerPanel = document.getElementById('colorPickerPanel'), colorArrow = document.getElementById('colorArrow');
+        var hSlider = document.getElementById('h-slider'), sSlider = document.getElementById('s-slider'), bSlider = document.getElementById('b-slider'), hexInput = document.getElementById('hex-input');
+        var checkBtn = document.getElementById('checkBtn'), refreshBtn = document.getElementById('refreshBtn');
+        var reportContainer = document.getElementById('reportContainer'), reportHeader = document.getElementById('reportHeader'), statusEl = document.getElementById('status'), reportEl = document.getElementById('report'), copyBtn = document.getElementById('copyBtn');
+
+        accContent.style.display = state.accOpen ? 'block' : 'none';
+        accArrow.setAttribute('class', state.accOpen ? 'chevron expanded' : 'chevron');
+        optStrike.checked = state.strike; optSelect.checked = state.select; optRecolor.checked = state.recolor; optDelete.checked = state.delete;
+        colorPickerPanel.style.display = state.pickerOpen ? 'block' : 'none';
+        colorArrow.setAttribute('class', state.pickerOpen ? 'chevron expanded' : 'chevron');
+        hSlider.value = state.h; sSlider.value = state.s; bSlider.value = state.b; hexInput.value = state.hex;
+        applyLanguage();
+        
+        accHeader.onclick = function() { 
+            state.accOpen = !state.accOpen; 
+            accContent.style.display = state.accOpen ? 'block' : 'none'; 
+            accArrow.setAttribute('class', state.accOpen ? 'chevron expanded' : 'chevron'); 
+            saveState(); 
+        };
+
+        function updateDeleteLogic() {
+            if (optDelete.checked) {
+                rowStrike.classList.add('disabled'); rowSelect.classList.add('disabled'); rowRecolor.classList.add('disabled');
+                optStrike.checked = false; optSelect.checked = false; optRecolor.checked = false; colorSection.style.display = 'none';
+            } else {
+                rowStrike.classList.remove('disabled'); rowSelect.classList.remove('disabled'); rowRecolor.classList.remove('disabled');
+                optStrike.checked = state.prevStrike; optSelect.checked = state.prevSelect; optRecolor.checked = state.prevRecolor;
+                colorSection.style.display = optRecolor.checked ? 'block' : 'none';
+            }
+        }
+        optDelete.onchange = function() { state.delete = this.checked; if (this.checked) { state.prevStrike = state.strike; state.prevSelect = state.select; state.prevRecolor = state.recolor; } updateDeleteLogic(); state.strike = optStrike.checked; state.select = optSelect.checked; state.recolor = optRecolor.checked; saveState(); };
+        function handleNormalToggle() { if (optDelete.checked) return; state.strike = optStrike.checked; state.select = optSelect.checked; state.recolor = optRecolor.checked; colorSection.style.display = state.recolor ? 'block' : 'none'; saveState(); }
+        optStrike.onchange = handleNormalToggle; optSelect.onchange = handleNormalToggle; optRecolor.onchange = handleNormalToggle;
+
+        function hsbToRgb(h, s, b) { s /= 100; b /= 100; var k = (n) => (n + h / 60) % 6; var f = (n) => b * (1 - s * Math.max(0, Math.min(k(n), 4 - k(n), 1))); return [Math.round(255 * f(5)), Math.round(255 * f(3)), Math.round(255 * f(1))]; }
+        function rgbToHex(r, g, b) { return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase(); }
+        function hexToRgb(hex) { var bigint = parseInt(hex, 16); return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255]; }
+        function rgbToHsb(r, g, b) { r /= 255; g /= 255; b /= 255; var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, h = 0, s = (max === 0 ? 0 : d / max), v = max; if (max !== min) { switch (max) { case r: h = (g - b) / d + (g < b ? 6 : 0); break; case g: h = (b - r) / d + 2; break; case b: h = (r - g) / d + 4; break; } h /= 6; } return [Math.round(h * 360), Math.round(s * 100), Math.round(v * 100)]; }
+
+        function updateColorUI(fromHex) {
+            if (fromHex) { var rgb = hexToRgb(state.hex); var hsb = rgbToHsb(rgb[0], rgb[1], rgb[2]); state.h = hsb[0]; state.s = hsb[1]; state.b = hsb[2]; hSlider.value = state.h; sSlider.value = state.s; bSlider.value = state.b; } 
+            else { var rgb = hsbToRgb(state.h, state.s, state.b); state.hex = rgbToHex(rgb[0], rgb[1], rgb[2]); hexInput.value = state.hex; }
+            colorThumb.style.backgroundColor = '#' + state.hex;
+            var pureHueRgb = hsbToRgb(state.h, 100, 100);
+            sSlider.style.background = 'linear-gradient(to right, #fff, rgb('+pureHueRgb.join(',')+'))';
+            bSlider.style.background = 'linear-gradient(to right, #000, rgb('+hsbToRgb(state.h, state.s, 100).join(',')+'))';
+            saveState();
+        }
+        hSlider.oninput = function() { state.h = parseInt(this.value); updateColorUI(false); }; sSlider.oninput = function() { state.s = parseInt(this.value); updateColorUI(false); }; bSlider.oninput = function() { state.b = parseInt(this.value); updateColorUI(false); };
+        hexInput.onchange = function() { var val = this.value.replace(/[^0-9A-F]/gi, '').toUpperCase(); if(val.length === 6) { state.hex = val; updateColorUI(true); } else { this.value = state.hex; } };
+        togglePickerRow.onclick = function() { 
+            state.pickerOpen = !state.pickerOpen; 
+            colorPickerPanel.style.display = state.pickerOpen ? 'block' : 'none'; 
+            colorArrow.setAttribute('class', state.pickerOpen ? 'chevron expanded' : 'chevron'); 
+            saveState(); 
+        };
+
+        updateDeleteLogic(); updateColorUI(false);
+
+        function showDbError(msg) {
+            btnText.innerText = dict[state.lang].errTitle; 
+            refreshBtn.disabled = false;
+            checkBtn.disabled = false;
+            
+            reportContainer.style.display = "flex";
+            reportHeader.style.display = "none";
+            reportEl.style.display = "block";
+            reportEl.innerHTML = "<span style='color: var(--red); font-weight: normal;'>" + dict[state.lang].errTitle + ":</span><br>" + msg;
+            copyBtn.style.display = "none";
+        }
+
+        function loadDatabase(isManualRefresh) {
+            checkBtn.disabled = true; refreshBtn.disabled = true; btnMark.style.display = "none";
+            btnText.innerText = dict[state.lang].btnUpdating;
+            var tempFonts = [], limitPerPage = 1000;
+
+            function fetchPage(page) {
+                var apiUrl = 'https://shryftoriz.online/api/fonts?origin=RU&search=&hasAlternatives=&limit=' + limitPerPage + '&page=' + page;
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', apiUrl, true);
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            var items = data.data || data.items || data.fonts || data;
+                            var currentChunk = [];
+                            if (Array.isArray(items)) {
+                                for (var i = 0; i < items.length; i++) {
+                                    if (items[i].name) currentChunk.push(items[i].name);
+                                    else if (items[i].title) currentChunk.push(items[i].title);
+                                }
+                            }
+                            tempFonts = tempFonts.concat(currentChunk);
+                            if (currentChunk.length === limitPerPage) fetchPage(page + 1);
+                            else {
+                                var uniqueFonts = [];
+                                for(var k = 0; k < tempFonts.length; k++) {
+                                    var fn = tempFonts[k].trim();
+                                    if (fn.length > 2 && uniqueFonts.indexOf(fn) === -1) uniqueFonts.push(fn);
+                                }
+                                cachedFonts = uniqueFonts;
+                                checkBtn.disabled = false; refreshBtn.disabled = false;
+                                btnText.innerText = dict[state.lang].btnCheck;
+                                btnMark.style.display = "block"; 
+                                
+                                if (isManualRefresh) {
+                                    var originalHTML = refreshBtn.innerHTML;
+                                    refreshBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+                                    setTimeout(function() { refreshBtn.innerHTML = originalHTML; }, 1500);
+                                }
+                            }
+                        } catch (e) { showDbError(dict[state.lang].errParse); }
+                    } else { showDbError(dict[state.lang].errServer); }
+                };
+                xhr.onerror = function() { showDbError(dict[state.lang].errNet); };
+                xhr.send();
+            }
+            fetchPage(1);
+        }
+
+        loadDatabase(false);
+        refreshBtn.onclick = function() { loadDatabase(true); };
+
+        copyBtn.onclick = function() {
+            if (lastCheckStatus !== 'found' || !lastCheckData) return;
+            var textToCopy = lastCheckData.join('\n');
+            var textArea = document.createElement("textarea");
+            textArea.value = textToCopy; document.body.appendChild(textArea);
+            textArea.select(); document.execCommand("Copy"); textArea.remove();
+            
+            var originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+            setTimeout(function() { copyBtn.innerHTML = originalHTML; }, 1500);
+        };
+
+        function renderReport() {
+            var d = dict[state.lang];
+            var headerText = d.source + cachedFonts.length + d.fontsStr;
+            
+            reportContainer.style.display = "flex";
+            reportEl.style.display = "block";
+
+            if (lastCheckStatus === 'warn') {
+                reportHeader.style.display = "none";
+                reportEl.innerHTML = "<span style='color: var(--orange); font-weight: normal;'>" + (d[lastCheckData] || lastCheckData) + "</span>";
+                copyBtn.style.display = "none";
+            } else if (lastCheckStatus === 'error') {
+                reportHeader.style.display = "none";
+                reportEl.innerHTML = "<span style='color: var(--red); font-weight: normal;'>" + d.errTitle + ":</span><br>" + (d[lastCheckData] || lastCheckData);
+                copyBtn.style.display = "none";
+            } else if (lastCheckStatus === 'clean') {
+                reportHeader.style.display = "flex";
+                statusEl.className = "success"; statusEl.innerText = d.done; 
+                reportEl.innerHTML = headerText.replace(/\n/g, '<br>') + d.clean;
+                copyBtn.style.display = "none";
+            } else if (lastCheckStatus === 'found') {
+                reportHeader.style.display = "flex";
+                statusEl.className = "error"; 
+                statusEl.innerText = d.foundTitle + lastCheckData.length;
+                
+                var actionWords = [];
+                if (state.delete) actionWords.push(d.actDel);
+                else {
+                    if (state.strike) actionWords.push(d.actStrike);
+                    if (state.select) actionWords.push(d.actSel);
+                    if (state.recolor) actionWords.push(d.actRecolor);
+                }
+                var actionText = actionWords.length > 0 ? actionWords.join(", ") : d.actNone;
+                
+                var listText = "";
+                lastCheckData.sort(function(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+                for(var i=0; i<lastCheckData.length; i++) { listText += "● " + lastCheckData[i] + "<br>"; }
+                
+                reportEl.innerHTML = headerText.replace(/\n/g, '<br>') + "<b>" + d.resDoc + actionText + ":</b><br><br>" + listText;
+                copyBtn.style.display = "flex";
+            }
+        }
+
+        checkBtn.addEventListener('click', function() {
+            if (cachedFonts.length === 0) return;
+            
+            checkBtn.disabled = true;
+            checkBtn.classList.add('btn-analyzing');
+            btnText.innerText = dict[state.lang].analyzing;
+            btnMark.style.display = "none";
+            
+            reportContainer.style.display = "none";
+
+            var payload = {
+                fonts: cachedFonts,
+                actions: { strike: state.strike, select: state.select, recolor: state.recolor, del: state.delete, hex: state.hex }
+            };
+            var jsonString = JSON.stringify(payload).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+            csInterface.evalScript('processDocument("' + jsonString + '")', function(result) {
+                checkBtn.disabled = false;
+                checkBtn.classList.remove('btn-analyzing');
+                btnText.innerText = dict[state.lang].btnCheck;
+                btnMark.style.display = "block";
+                
+                if (result.indexOf("WARN_") === 0) {
+                    lastCheckStatus = 'warn';
+                    lastCheckData = result;
+                } else if (result.indexOf("ERR_") === 0) {
+                    lastCheckStatus = 'error';
+                    lastCheckData = result;
+                } else if (result === "CLEAN") {
+                    lastCheckStatus = 'clean';
+                    lastCheckData = null;
+                } else {
+                    lastCheckStatus = 'found';
+                    lastCheckData = JSON.parse(result);
+                }
+                
+                renderReport();
+            });
+        });
+    </script>
+</body>
+</html>
