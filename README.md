@@ -1,10 +1,10 @@
 # Shryftoriz Checker для Adobe Illustrator / for Adobe Illustrator ⚡️
 
-🇺🇦 [Українська](#українська) | 🇬🇧 [English](#english)
+[Українська](#українська) | [English](#english)
 
 ---
 
-## <a name="українська"></a> 🇺🇦 Українська
+## <a name="українська"></a> Українська
 
 Плагін для Adobe Illustrator, який автоматично знаходить, виділяє, закреслює або видаляє російські шрифти у ваших макетах. Працює на базі офіційного відкритого API проєкту [Shryftoriz](https://shryftoriz.online/).
 
@@ -36,7 +36,7 @@
 
 ---
 
-## <a name="english"></a> EN English
+## <a name="english"></a> English
 
 An Adobe Illustrator plugin that automatically detects, selects, strikes through, or removes russian fonts in your designs. Powered by the official open API of the [Shryftoriz](https://shryftoriz.online/) project.
 
