@@ -1,0 +1,1 @@
+# shryftoriz-checker-plugin-for-illustrator
