@@ -33,7 +33,6 @@
 
 ### 🔗 Посилання
 * Офіційний сайт бази: [shryftoriz.online](https://shryftoriz.online/)
-* Офіційне браузерне розширення Shryftoriz: [GitHub](https://github.com/so-karpenko/shryftoriz-extension)
 
 ---
 
@@ -66,4 +65,3 @@ The plugin supports **Adobe Illustrator CC 2017 and all newer versions** (Window
 
 ### 🔗 Links
 * Official database website: [shryftoriz.online](https://shryftoriz.online/)
-* Official Shryftoriz browser extension: [GitHub](https://github.com/so-karpenko/shryftoriz-extension)
