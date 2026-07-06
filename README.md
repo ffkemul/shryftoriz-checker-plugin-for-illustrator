@@ -36,7 +36,7 @@
 
 ---
 
-## <a name="english"></a> 🇬🇧 English
+## <a name="english"></a> EN English
 
 An Adobe Illustrator plugin that automatically detects, selects, strikes through, or removes russian fonts in your designs. Powered by the official open API of the [Shryftoriz](https://shryftoriz.online/) project.
 
